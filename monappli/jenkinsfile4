@@ -1,21 +1,38 @@
-node {
-	stage('Recup sources') {
-		echo 'Checkout SCM....'
-		git url: 'https://github.com/Pitt0x5f64/TP_J1_ORSYS/'
-	}
-	stage('Docker Image....') {
-		echo 'Docker Image....'
-        agent {
-            docker { image 'node:20.17.0-alpine3.20' }
+pipeline {
+    agent any
+    tools {
+        maven 'Maven3.9.9'
+        jdk 'Jdk21'
     }
-	}
-	stage('Test') {
-		echo 'Testing....'
-	}
-	stage('Package') {
-		echo 'Packaging....'
-	}
-	stage('Deploy') {
-		echo 'Deploying....'
-	}
+    stages{
+//          notifyBuild('STARTED')
+         stage('Clone Repo') {
+          steps{
+            // for display purposes
+            // Get some code from a GitHub repository
+            git url: 'https://github.com/Pitt0x5f64/TP_J1_ORSYS',
+                credentialsId: 'Pitt0x5f64',
+                branch: 'master'
+          }
+         }
+          stage('Build') {
+            steps{
+              bat ' cd monappli & mvn clean install '
+            }
+                
+          }
+          stage('Build docker') {
+            steps{
+              bat ' docker build -t peter/monappli monappli/ '
+            }
+          }
+
+          stage('Deploy docker'){
+            steps
+            {
+              bat ' echo "Docker Image Tag Name: monappli${env.BUILD_NUMBER}" '
+              bat ' docker run --name monAppliContainer -d -p 8081:8081 peter/monappli:${env.BUILD_NUMBER} '
+            }
+          }
+    }
 }
